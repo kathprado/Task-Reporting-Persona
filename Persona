@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Team Scrub Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ============================================================
+   HOW TO UPDATE YOUR GOOGLE SHEETS CONNECTION
+   ============================================================
+   1. Open your Google Sheet
+   2. File → Share → Publish to web
+   3. Select the tab you want → CSV format → Publish
+   4. Copy the URL and paste it below replacing the SHEET_URL value
+   5. Save this file and re-upload to GitHub
+   ============================================================ */
+
+/* ---- CHANGE THIS URL TO YOUR PUBLISHED GOOGLE SHEET CSV ---- */
+/* You can add more sheet URLs below for each tab              */
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',system-ui,sans-serif;background:#f8f9fb;color:#1a1a2e;font-size:13px}
+
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* Sidebar */
+.sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid #e8eaed;display:flex;flex-direction:column;overflow-y:auto}
+.logo{padding:18px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e8eaed}
+.logo-mark{width:28px;height:28px;border-radius:8px;background:#1a56db;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-mark svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:14px;font-weight:600;letter-spacing:-.02em;color:#1a1a2e}
+.logo-sub{font-size:10px;color:#9ca3af;margin-top:1px}
+.nav-group{padding:14px 0 6px}
+.nav-label{padding:0 16px 6px;font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;font-size:12.5px;color:#6b7280;cursor:pointer;border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{color:#1a1a2e;background:#f8f9fb}
+.nav-item.active{color:#1a56db;background:#eff6ff;border-left-color:#1a56db;font-weight:500}
+.nav-item svg{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.va-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:14px 16px;border-top:1px solid #e8eaed;background:#fff}
+.week-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af;margin-bottom:6px}
+select.week-sel{width:100%;font-size:12px;padding:7px 10px;border-radius:8px;border:1px solid #e8eaed;background:#fff;color:#1a1a2e;cursor:pointer;outline:none}
+select.week-sel:focus{border-color:#1a56db}
+
+/* Main area */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f8f9fb}
+.topbar{padding:16px 24px;background:#fff;border-bottom:1px solid #e8eaed;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.page-title{font-size:17px;font-weight:600;letter-spacing:-.02em}
+.page-sub{font-size:11px;color:#9ca3af;margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.status-pill{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid #e8eaed;background:#fff;font-size:11px;color:#6b7280}
+.pulse{width:7px;height:7px;border-radius:50%;background:#10b981;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.refresh-btn{padding:6px 14px;border-radius:8px;border:1px solid #e8eaed;background:#fff;font-size:12px;cursor:pointer;color:#6b7280;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;transition:all .15s}
+.refresh-btn:hover{background:#f8f9fb;border-color:#d1d5db}
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* Loading & error */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:12px;color:#9ca3af}
+.spinner{width:22px;height:22px;border:2px solid #e8eaed;border-top-color:#1a56db;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-box{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;color:#dc2626;font-size:12.5px;margin-bottom:16px;line-height:1.7}
+.error-box code{background:#fee2e2;padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px}
+
+/* Alert */
+.alert{display:flex;gap:10px;padding:11px 15px;border-radius:10px;border:1px solid #fecaca;background:#fef2f2;margin-bottom:16px}
+.alert-icon{color:#dc2626;flex-shrink:0;margin-top:1px}
+.alert-title{font-size:13px;font-weight:600;color:#dc2626}
+.alert-body{font-size:12px;color:#ef4444;margin-top:2px;line-height:1.6}
+
+/* Metric cards */
+.metrics-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.mcard{background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:15px 17px}
+.mcard-lbl{font-size:10.5px;font-weight:600;letter-spacing:.04em;color:#9ca3af;text-transform:uppercase;margin-bottom:8px}
+.mcard-val{font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.mcard-sub{font-size:11px;color:#9ca3af;margin-top:6px}
+
+/* VA cards */
+.va-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:18px}
+.va-card{background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:15px}
+.va-card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.va-name{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+.va-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.va-meta{font-size:11px;color:#9ca3af;margin-bottom:11px}
+.metric-pair{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.mp-lbl{font-size:11px;color:#6b7280}
+.mp-val{font-size:12.5px;font-weight:600;font-family:'DM Mono',monospace}
+.bar-track{height:5px;background:#f1f3f5;border-radius:3px;margin-bottom:12px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.va-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #f1f3f5;padding-top:10px;text-align:center}
+.vs-val{font-size:13px;font-weight:700;font-family:'DM Mono',monospace}
+.vs-lbl{font-size:9.5px;color:#9ca3af;margin-top:2px}
+
+/* Chart cards */
+.chart-card{background:#fff;border:1px solid #e8eaed;border-radius:12px;padding:16px;margin-bottom:16px}
+.chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.chart-title{font-size:13px;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#6b7280}
+.legend-swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* Table */
+.tbl-wrap{background:#fff;border:1px solid #e8eaed;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:10px 14px;background:#f8f9fb;border-bottom:1px solid #e8eaed;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9ca3af;white-space:nowrap}
+.tbl td{padding:9px 14px;border-bottom:1px solid #f1f3f5;white-space:nowrap}
+.tbl tr:last-child td{border:none}
+.tbl tr:hover td{background:#f8f9fb}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:10px}
+.tag-dot{width:5px;height:5px;border-radius:50%}
+
+/* Task bars */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#9ca3af}
+.task-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.task-lbl{width:140px;font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task-track{flex:1;height:13px;background:#f1f3f5;border-radius:4px;overflow:hidden}
+.task-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.task-val{width:70px;font-size:11.5px;color:#9ca3af;text-align:right;font-family:'DM Mono',monospace}
+
+/* Info box for GSheet guide */
+.info-card{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 18px;margin-bottom:18px}
+.info-title{font-size:13px;font-weight:600;color:#1a56db;margin-bottom:6px}
+.info-body{font-size:12px;color:#3b82f6;line-height:1.8}
+.info-body code{background:#dbeafe;padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace;font-size:11px;color:#1d4ed8}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5"/><path d="M7 4v3l2 2"/></svg>
+      </div>
+      <div>
+        <div class="logo-text">Scrub Analyzer</div>
+        <div class="logo-sub">Live · Google Sheets</div>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">Views</div>
+      <div class="nav-item active" onclick="nav('overview',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+        Team Overview
+      </div>
+      <div class="nav-item" onclick="nav('tasks',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        Task Breakdown
+      </div>
+      <div class="nav-item" onclick="nav('scrub',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><polyline points="1,11 4,7 7,9 10,5 13,7 15,4"/></svg>
+        Persona Scrub
+      </div>
+      <div class="nav-item" onclick="nav('support',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M13 5H3a1 1 0 00-1 1v6a1 1 0 001 1h10a1 1 0 001-1V6a1 1 0 00-1-1z"/><path d="M5 5V4a3 3 0 016 0v1"/></svg>
+        Support Request
+      </div>
+      <div class="nav-item" onclick="nav('attendance',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 1v4M11 1v4M2 8h12"/></svg>
+        Attendance
+      </div>
+      <div class="nav-item" onclick="nav('detail',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h8"/></svg>
+        Full Detail
+      </div>
+      <div class="nav-item" onclick="nav('guide',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7v5M8 5h.01"/></svg>
+        Sheet Guide
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-label">VAs</div>
+      <div id="vaNav"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="week-label">Week</div>
+      <select class="week-sel" id="weekSel" onchange="onWeekChange()"></select>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="pageTitle">Team Overview</div>
+        <div class="page-sub" id="pageSub">Loading live data…</div>
+      </div>
+      <div class="topbar-right">
+        <div class="status-pill">
+          <div class="pulse" id="pulseDot"></div>
+          <span id="statusText">Connecting…</span>
+        </div>
+        <button class="refresh-btn" onclick="loadData(true)">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><path d="M13.5 2.5A7 7 0 102 13.5"/><polyline points="13.5,2.5 13.5,6.5 9.5,6.5"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <div class="loading"><div class="spinner"></div><span>Fetching live data…</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  CONFIGURATION — UPDATE THESE URLS WHEN YOU PUBLISH NEW TABS
+// ============================================================
+// To get a URL: File → Share → Publish to web → pick tab → CSV → Publish → copy link
+const SHEET_URLS = {
+  weekly: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTKS_Xh48h6E1rHxPN4QPuGmYFKjokb7tJfVjWJTFfKrHSd2dlspUmwkVz3lb8NOVx63nKt7fvZvwuG/pub?gid=1655226969&single=true&output=csv',
+  // Add more tabs here as you publish them, for example:
+  // scrub:    'https://docs.google.com/...pub?gid=XXXXXXXX&single=true&output=csv',
+  // support:  'https://docs.google.com/...pub?gid=XXXXXXXX&single=true&output=csv',
+  // freetime: 'https://docs.google.com/...pub?gid=XXXXXXXX&single=true&output=csv',
+};
+// ============================================================
+
+const VA_COLORS = {
+  'Monica':'#1a56db','Nolan Walker':'#10b981','Amelia':'#7c3aed',
+  'Danni':'#f59e0b','Hannah Carter':'#ef4444','Allie Parker':'#06b6d4',
+  'Jane Alderson':'#ec4899'
+};
+const TASK_COLORS = {
+  'Free Time':'#10b981','NPS Survey':'#1a56db','Break':'#94a3b8',
+  'Persona Scrub':'#7c3aed','Support Request':'#f59e0b',
+  'Checking Emails':'#06b6d4','Follow up':'#ec4899','Meeting':'#f97316',
+  'Calling in Orders':'#84cc16','Start of Shift':'#cbd5e1',
+  'End of Shift':'#cbd5e1','Wrap up':'#cbd5e1'
+};
+
+let allData=[], weeks=[], currentNav='overview', charts=[];
+
+function vaColor(n){return VA_COLORS[n]||'#6366f1';}
+function taskColor(t){return TASK_COLORS[t]||'#94a3b8';}
+
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  const headers=lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+  return lines.slice(1).map(line=>{
+    const vals=[];let cur='',inQ=false;
+    for(let c of line){if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){vals.push(cur);cur='';}else{cur+=c;}}
+    vals.push(cur);
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=(vals[i]||'').replace(/"/g,'').trim());
+    return obj;
+  }).filter(r=>Object.values(r).some(v=>v));
+}
+
+function getWeekKey(d){
+  if(!d)return null;
+  const dt=new Date(d);if(isNaN(dt))return null;
+  const day=dt.getDay(),diff=dt.getDate()-day+(day===0?-6:1),m=new Date(dt);
+  m.setDate(diff);return m.toISOString().slice(0,10);
+}
+function fmtWeek(k){
+  const d=new Date(k),e=new Date(k);e.setDate(e.getDate()+6);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+e.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+function fmtD(d){const dt=new Date(d);return isNaN(dt)?d:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
+
+async function loadData(force=false){
+  document.getElementById('statusText').textContent='Fetching…';
+  document.getElementById('pulseDot').style.background='#f59e0b';
+  try{
+    const resp=await fetch(SHEET_URLS.weekly+'&t='+Date.now());
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const text=await resp.text();
+    allData=parseCSV(text);
+    const wkSet=new Set();
+    allData.forEach(r=>{
+      const wk=r['Week Beginning']||getWeekKey(r['Shift Date']);
+      if(wk)wkSet.add(String(wk).slice(0,10));
+    });
+    weeks=[...wkSet].filter(Boolean).sort();
+    const sel=document.getElementById('weekSel');
+    const prev=sel.value;
+    sel.innerHTML='';
+    weeks.forEach(w=>{const o=document.createElement('option');o.value=w;o.textContent=fmtWeek(w);sel.appendChild(o);});
+    if(prev&&weeks.includes(prev))sel.value=prev;else sel.value=weeks[weeks.length-1]||'';
+    buildVANav();
+    document.getElementById('statusText').textContent='Live · '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('pulseDot').style.background='#10b981';
+    document.getElementById('pageSub').textContent='Week of '+fmtWeek(sel.value);
+    render();
+  }catch(e){
+    document.getElementById('statusText').textContent='Connection error';
+    document.getElementById('pulseDot').style.background='#ef4444';
+    document.getElementById('content').innerHTML=`<div class="error-box">
+      <strong>Could not load data.</strong><br><br>
+      Make sure your Google Sheet is published:<br>
+      1. Open your sheet → <strong>File → Share → Publish to web</strong><br>
+      2. Select tab → CSV → click Publish<br>
+      3. Copy the URL and update the <code>SHEET_URLS.weekly</code> value at the top of this HTML file<br><br>
+      Error: ${e.message}
+    </div>`;
+  }
+}
+
+function getWeekData(){
+  const wk=document.getElementById('weekSel').value;
+  return allData.filter(r=>{
+    const rw=r['Week Beginning']?String(r['Week Beginning']).slice(0,10):getWeekKey(r['Shift Date']);
+    return rw===wk;
+  });
+}
+
+function buildVANav(){
+  const vas=[...new Set(allData.map(r=>r['VA Name']))].filter(Boolean).sort();
+  document.getElementById('vaNav').innerHTML=vas.map(va=>
+    `<div class="nav-item" style="padding-left:16px;font-size:12px">
+      <div class="va-dot" style="background:${vaColor(va)}"></div>${va}
+    </div>`).join('');
+}
+
+function clearCharts(){charts.forEach(c=>{try{c.destroy();}catch(e){}});charts=[];}
+
+function nav(page,el){
+  currentNav=page;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  const titles={overview:'Team Overview',tasks:'Task Breakdown',scrub:'Persona Scrub',support:'Support Request',attendance:'Attendance',detail:'Full Detail',guide:'Google Sheets Guide'};
+  document.getElementById('pageTitle').textContent=titles[page]||page;
+  clearCharts();render();
+}
+
+function onWeekChange(){
+  document.getElementById('pageSub').textContent='Week of '+fmtWeek(document.getElementById('weekSel').value);
+  clearCharts();render();
+}
+
+function render(){
+  if(currentNav==='guide'){renderGuide();return;}
+  if(!allData.length)return;
+  if(currentNav==='overview')renderOverview();
+  else if(currentNav==='tasks')renderTasks();
+  else if(currentNav==='scrub')renderScrub();
+  else if(currentNav==='support')renderSupport();
+  else if(currentNav==='attendance')renderAttendance();
+  else if(currentNav==='detail')renderDetail();
+}
+
+function vaStats(){
+  const data=getWeekData(),m={};
+  data.forEach(r=>{
+    const va=r['VA Name'],task=r['Task Type'];if(!va||!task)return;
+    if(!m[va])m[va]={totalMins:0,byTask:{},days:new Set()};
+    const mins=parseFloat(r['Duration (mins)'])||0;
+    m[va].totalMins+=mins;m[va].byTask[task]=(m[va].byTask[task]||0)+mins;
+    const d=r['Shift Date']||r['Week Beginning'];if(d)m[va].days.add(String(d).slice(0,10));
+  });
+  return Object.entries(m).map(([name,v])=>({
+    name,totalHrs:v.totalMins/60,
+    scrubHrs:(v.byTask['Persona Scrub']||0)/60,
+    supportHrs:(v.byTask['Support Request']||0)/60,
+    freeHrs:(v.byTask['Free Time']||0)/60,
+    breakHrs:(v.byTask['Break']||0)/60,
+    byTask:v.byTask,days:v.days.size
+  })).sort((a,b)=>b.totalHrs-a.totalHrs);
+}
+
+function renderOverview(){
+  const vas=vaStats();
+  if(!vas.length){document.getElementById('content').innerHTML='<div class="loading"><span>No data for this week</span></div>';return;}
+  const totalHrs=vas.reduce((s,v)=>s+v.totalHrs,0);
+  const totalScrub=vas.reduce((s,v)=>s+v.scrubHrs,0);
+  const totalFree=vas.reduce((s,v)=>s+v.freeHrs,0);
+  const topScrub=vas.slice().sort((a,b)=>b.scrubHrs-a.scrubHrs)[0];
+  const maxScrub=Math.max(...vas.map(v=>v.scrubHrs),0.01);
+
+  let html=`<div class="metrics-row">
+    <div class="mcard"><div class="mcard-lbl">Total hours logged</div><div class="mcard-val">${totalHrs.toFixed(1)}</div><div class="mcard-sub">across ${vas.length} VAs</div></div>
+    <div class="mcard"><div class="mcard-lbl">Persona scrub</div><div class="mcard-val" style="color:#7c3aed">${totalScrub.toFixed(2)}</div><div class="mcard-sub">hrs this week</div></div>
+    <div class="mcard"><div class="mcard-lbl">Total free time</div><div class="mcard-val" style="color:#10b981">${totalFree.toFixed(1)}</div><div class="mcard-sub">hrs across team</div></div>
+    <div class="mcard"><div class="mcard-lbl">Top scrub VA</div><div class="mcard-val" style="color:${vaColor(topScrub.name)};font-size:16px">${topScrub.name.split(' ')[0]}</div><div class="mcard-sub">${topScrub.scrubHrs.toFixed(2)}h scrub</div></div>
+  </div>
+  <div class="sec-hdr"><div class="sec-title">VA performance this week</div></div>
+  <div class="va-grid">`;
+
+  vas.forEach(v=>{
+    const pct=maxScrub>0?(v.scrubHrs/maxScrub*100):0;
+    const col=vaColor(v.name);
+    const initials=v.name.split(' ').map(w=>w[0]).join('').slice(0,2);
+    html+=`<div class="va-card">
+      <div class="va-card-hdr">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:${col}20;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:${col}">${initials}</div>
+          <div class="va-name">${v.name}</div>
+        </div>
+        <div class="va-badge" style="background:${col}15;color:${col}">${v.days}d</div>
+      </div>
+      <div class="va-meta">${v.days} active day${v.days!==1?'s':''} · ${v.totalHrs.toFixed(1)}h total</div>
+      <div class="metric-pair"><div class="mp-lbl">Persona scrub</div><div class="mp-val" style="color:${col}">${v.scrubHrs.toFixed(2)}h</div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div></div>
+      <div class="va-stats">
+        <div><div class="vs-val">${v.scrubHrs.toFixed(2)}</div><div class="vs-lbl">Scrub</div></div>
+        <div><div class="vs-val">${v.supportHrs.toFixed(2)}</div><div class="vs-lbl">Support</div></div>
+        <div><div class="vs-val">${v.freeHrs.toFixed(1)}</div><div class="vs-lbl">Free</div></div>
+      </div>
+    </div>`;
+  });
+  html+=`</div>
+  <div class="chart-card">
+    <div class="chart-hdr">
+      <div class="chart-title">Scrub vs Support vs Free time</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#7c3aed"></div>Scrub</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b"></div>Support</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div>Free time</div>
+      </div>
+    </div>
+    <div style="position:relative;height:200px"><canvas id="ov1"></canvas></div>
+  </div>`;
+
+  document.getElementById('content').innerHTML=html;
+  const c=new Chart(document.getElementById('ov1'),{
+    type:'bar',
+    data:{labels:vas.map(v=>v.name),datasets:[
+      {label:'Scrub',data:vas.map(v=>+v.scrubHrs.toFixed(2)),backgroundColor:'#7c3aed',borderRadius:4},
+      {label:'Support',data:vas.map(v=>+v.supportHrs.toFixed(2)),backgroundColor:'#f59e0b',borderRadius:4},
+      {label:'Free time',data:vas.map(v=>+v.freeHrs.toFixed(1)),backgroundColor:'#10b981',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{title:{display:true,text:'Hours'}}}}
+  });
+  charts.push(c);
+}
+
+function renderTasks(){
+  const data=getWeekData(),taskTotals={};
+  data.forEach(r=>{const t=r['Task Type'],m=parseFloat(r['Duration (mins)'])||0;if(t)taskTotals[t]=(taskTotals[t]||0)+m;});
+  const sorted=Object.entries(taskTotals).map(([t,m])=>({task:t,hrs:m/60})).sort((a,b)=>b.hrs-a.hrs);
+  const maxH=sorted[0]?.hrs||1;
+  let html=`<div class="sec-hdr"><div class="sec-title">All task types this week</div></div>`;
+  sorted.forEach(({task,hrs})=>{
+    html+=`<div class="task-row">
+      <div class="task-lbl">${task}</div>
+      <div class="task-track"><div class="task-fill" style="width:${(hrs/maxH*100).toFixed(1)}%;background:${taskColor(task)}"></div></div>
+      <div class="task-val">${hrs.toFixed(2)}h</div>
+    </div>`;
+  });
+  html+=`<div class="chart-card" style="margin-top:18px">
+    <div class="chart-hdr"><div class="chart-title">Task distribution</div></div>
+    <div style="position:relative;height:220px"><canvas id="tc1"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-hdr"><div class="chart-title">Per-VA task breakdown (stacked)</div></div>
+    <div style="position:relative;height:${Math.max(200,vaStats().length*50+80)}px"><canvas id="tc2"></canvas></div>
+  </div>`;
+  document.getElementById('content').innerHTML=html;
+  const top=sorted.slice(0,8);
+  const c1=new Chart(document.getElementById('tc1'),{
+    type:'doughnut',
+    data:{labels:top.map(t=>t.task),datasets:[{data:top.map(t=>+t.hrs.toFixed(2)),backgroundColor:top.map(t=>taskColor(t.task)),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:10}}}}
+  });
+  charts.push(c1);
+  const vas=vaStats();
+  const keys=['Persona Scrub','Support Request','NPS Survey','Break','Free Time','Checking Emails','Follow up','Meeting'];
+  const c2=new Chart(document.getElementById('tc2'),{
+    type:'bar',
+    data:{labels:vas.map(v=>v.name),datasets:keys.map(tk=>({label:tk,data:vas.map(v=>+((v.byTask[tk]||0)/60).toFixed(2)),backgroundColor:taskColor(tk),borderRadius:2}))},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{labels:{font:{size:10},boxWidth:8}}},scales:{x:{stacked:true},y:{stacked:true,ticks:{font:{size:11}}}}}
+  });
+  charts.push(c2);
+}
+
+function renderScrub(){
+  const vas=vaStats().sort((a,b)=>b.scrubHrs-a.scrubHrs);
+  const dates=[...new Set(getWeekData().map(r=>String(r['Shift Date']||'').slice(0,10)))].filter(Boolean).sort();
+  const totalScrub=vas.reduce((s,v)=>s+v.scrubHrs,0);
+  let html=`<div class="metrics-row">
+    <div class="mcard"><div class="mcard-lbl">Team total scrub</div><div class="mcard-val" style="color:#7c3aed">${totalScrub.toFixed(2)}h</div><div class="mcard-sub">this week</div></div>
+    <div class="mcard"><div class="mcard-lbl">Avg per VA</div><div class="mcard-val">${(totalScrub/Math.max(vas.length,1)).toFixed(2)}h</div></div>
+    <div class="mcard"><div class="mcard-lbl">Avg per day</div><div class="mcard-val">${(totalScrub/Math.max(dates.length,1)).toFixed(2)}h</div></div>
+    <div class="mcard"><div class="mcard-lbl">Active VAs</div><div class="mcard-val">${vas.filter(v=>v.scrubHrs>0).length}</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-hdr"><div class="chart-title">Persona scrub — daily trend per VA</div></div>
+    <div style="position:relative;height:210px"><canvas id="sc1"></canvas></div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>VA</th><th>Total scrub (hrs)</th><th>Avg/day</th><th>Active days</th><th>Share of team total</th></tr></thead><tbody>`;
+  vas.forEach(v=>{
+    const col=vaColor(v.name);const pct=totalScrub>0?(v.scrubHrs/totalScrub*100):0;
+    html+=`<tr>
+      <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${col}"></span><strong>${v.name}</strong></span></td>
+      <td style="font-family:'DM Mono',monospace">${v.scrubHrs.toFixed(3)}</td>
+      <td style="font-family:'DM Mono',monospace">${(v.scrubHrs/Math.max(v.days,1)).toFixed(3)}</td>
+      <td>${v.days}</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="width:80px;height:5px;background:#f1f3f5;border-radius:3px;overflow:hidden"><div style="height:100%;background:${col};width:${pct.toFixed(1)}%;border-radius:3px"></div></div>
+        <span style="font-size:11px;color:#9ca3af">${pct.toFixed(0)}%</span>
+      </div></td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  document.getElementById('content').innerHTML=html;
+  const byVADate={};
+  getWeekData().forEach(r=>{
+    if(r['Task Type']!=='Persona Scrub')return;
+    const va=r['VA Name'],d=String(r['Shift Date']||'').slice(0,10),m=parseFloat(r['Duration (mins)'])||0;
+    if(!va||!d)return;
+    if(!byVADate[va])byVADate[va]={};
+    byVADate[va][d]=(byVADate[va][d]||0)+m/60;
+  });
+  const c=new Chart(document.getElementById('sc1'),{
+    type:'line',
+    data:{labels:dates.map(d=>fmtD(d)),datasets:vas.filter(v=>v.scrubHrs>0).map(v=>({
+      label:v.name,data:dates.map(d=>+((byVADate[v.name]&&byVADate[v.name][d])||0).toFixed(3)),
+      borderColor:vaColor(v.name),backgroundColor:'transparent',pointRadius:4,tension:.3,borderWidth:2
+    }))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10}}},scales:{x:{ticks:{autoSkip:false,font:{size:10}}},y:{title:{display:true,text:'Hours'}}}}
+  });
+  charts.push(c);
+}
+
+function renderSupport(){
+  const vas=vaStats().sort((a,b)=>b.supportHrs-a.supportHrs);
+  const totalSup=vas.reduce((s,v)=>s+v.supportHrs,0);
+  let html=`<div class="metrics-row">
+    <div class="mcard"><div class="mcard-lbl">Team total support</div><div class="mcard-val" style="color:#f59e0b">${totalSup.toFixed(2)}h</div></div>
+    <div class="mcard"><div class="mcard-lbl">Avg per VA</div><div class="mcard-val">${(totalSup/Math.max(vas.length,1)).toFixed(2)}h</div></div>
+    <div class="mcard"><div class="mcard-lbl">Top VA</div><div class="mcard-val" style="color:${vaColor(vas[0]?.name)};font-size:16px">${vas[0]?.name.split(' ')[0]||'—'}</div></div>
+    <div class="mcard"><div class="mcard-lbl">VAs with support</div><div class="mcard-val">${vas.filter(v=>v.supportHrs>0).length}</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-hdr"><div class="chart-title">Support request hours by VA</div></div>
+    <div style="position:relative;height:190px"><canvas id="sp1"></canvas></div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>VA</th><th>Total support (hrs)</th><th>Avg/day</th><th>Days active</th></tr></thead><tbody>`;
+  vas.forEach(v=>{
+    html+=`<tr>
+      <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${vaColor(v.name)}"></span><strong>${v.name}</strong></span></td>
+      <td style="font-family:'DM Mono',monospace">${v.supportHrs.toFixed(3)}</td>
+      <td style="font-family:'DM Mono',monospace">${(v.supportHrs/Math.max(v.days,1)).toFixed(3)}</td>
+      <td>${v.days}</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  document.getElementById('content').innerHTML=html;
+  const c=new Chart(document.getElementById('sp1'),{
+    type:'bar',
+    data:{labels:vas.map(v=>v.name),datasets:[{label:'Support hrs',data:vas.map(v=>+v.supportHrs.toFixed(3)),backgroundColor:vas.map(v=>vaColor(v.name)),borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{title:{display:true,text:'Hours'}}}}
+  });
+  charts.push(c);
+}
+
+function renderAttendance(){
+  const vas=vaStats();
+  const maxFree=Math.max(...vas.map(v=>v.freeHrs),1);
+  let html=`<div class="sec-hdr"><div class="sec-title">Free time per VA</div></div>`;
+  vas.forEach(v=>{
+    const col=vaColor(v.name);
+    html+=`<div class="task-row">
+      <div class="task-lbl" style="color:${col};font-weight:500">${v.name}</div>
+      <div class="task-track"><div class="task-fill" style="width:${(v.freeHrs/maxFree*100).toFixed(1)}%;background:${col}80"></div></div>
+      <div class="task-val">${v.freeHrs.toFixed(1)}h</div>
+    </div>`;
+  });
+  html+=`<div class="chart-card" style="margin-top:18px">
+    <div class="chart-hdr"><div class="chart-title">Break vs Free time vs Scrub vs Support</div></div>
+    <div style="position:relative;height:200px"><canvas id="at1"></canvas></div>
+  </div>
+  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>VA</th><th>Free time</th><th>Break</th><th>Scrub</th><th>Support</th><th>NPS Survey</th></tr></thead><tbody>`;
+  vas.forEach(v=>{
+    const npsh=(v.byTask['NPS Survey']||0)/60;
+    html+=`<tr>
+      <td><strong>${v.name}</strong></td>
+      <td style="color:#10b981;font-family:'DM Mono',monospace">${v.freeHrs.toFixed(1)}h</td>
+      <td style="font-family:'DM Mono',monospace">${v.breakHrs.toFixed(2)}h</td>
+      <td style="color:#7c3aed;font-family:'DM Mono',monospace">${v.scrubHrs.toFixed(2)}h</td>
+      <td style="color:#f59e0b;font-family:'DM Mono',monospace">${v.supportHrs.toFixed(2)}h</td>
+      <td style="color:#1a56db;font-family:'DM Mono',monospace">${npsh.toFixed(2)}h</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  document.getElementById('content').innerHTML=html;
+  const c=new Chart(document.getElementById('at1'),{
+    type:'bar',
+    data:{labels:vas.map(v=>v.name.split(' ')[0]),datasets:[
+      {label:'Free time',data:vas.map(v=>+v.freeHrs.toFixed(1)),backgroundColor:'#10b981',borderRadius:3},
+      {label:'Break',data:vas.map(v=>+v.breakHrs.toFixed(2)),backgroundColor:'#94a3b8',borderRadius:3},
+      {label:'Scrub',data:vas.map(v=>+v.scrubHrs.toFixed(2)),backgroundColor:'#7c3aed',borderRadius:3},
+      {label:'Support',data:vas.map(v=>+v.supportHrs.toFixed(2)),backgroundColor:'#f59e0b',borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:9}}},scales:{x:{stacked:true},y:{stacked:true,title:{display:true,text:'Hours'}}}}
+  });
+  charts.push(c);
+}
+
+function renderDetail(){
+  const data=getWeekData().sort((a,b)=>String(a['Shift Date']).localeCompare(String(b['Shift Date']))||String(a['VA Name']).localeCompare(String(b['VA Name'])));
+  let html=`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Date</th><th>VA</th><th>Task type</th><th>Duration (mins)</th><th>Duration (hrs)</th><th>Status</th></tr></thead><tbody>`;
+  data.forEach(r=>{
+    const mins=parseFloat(r['Duration (mins)'])||0;
+    const col=vaColor(r['VA Name']);const tc=taskColor(r['Task Type']);
+    html+=`<tr>
+      <td>${fmtD(r['Shift Date'])}</td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:${col}"></span>${r['VA Name']}</span></td>
+      <td><span class="tag" style="background:${tc}18;color:${tc}"><span class="tag-dot" style="background:${tc}"></span>${r['Task Type']}</span></td>
+      <td style="font-family:'DM Mono',monospace">${mins.toFixed(1)}</td>
+      <td style="font-family:'DM Mono',monospace">${(mins/60).toFixed(3)}</td>
+      <td style="color:#9ca3af;font-size:11px">${r['Status']||'—'}</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  document.getElementById('content').innerHTML=html;
+}
+
+function renderGuide(){
+  document.getElementById('content').innerHTML=`
+    <div class="info-card">
+      <div class="info-title">How the live data connection works</div>
+      <div class="info-body">
+        This dashboard fetches data directly from your Google Sheet every time the page loads or you click Refresh.
+        You never need to touch the website — just keep your sheet updated.
+      </div>
+    </div>
+
+    <div class="sec-hdr"><div class="sec-title">If you add a new sheet tab</div></div>
+    <div class="chart-card">
+      <div class="chart-title" style="margin-bottom:12px">Steps to publish a new tab and connect it</div>
+      <div style="font-size:12.5px;line-height:2;color:#374151">
+        <strong>1.</strong> In Google Sheets → <strong>File → Share → Publish to web</strong><br>
+        <strong>2.</strong> In the first dropdown, pick the <strong>sheet tab</strong> you want (e.g. PersonaScrubAvgTime)<br>
+        <strong>3.</strong> In the second dropdown, choose <strong>Comma-separated values (.csv)</strong><br>
+        <strong>4.</strong> Click <strong>Publish</strong> → copy the URL<br>
+        <strong>5.</strong> Open <code>index.html</code> in a text editor<br>
+        <strong>6.</strong> Find the <code>SHEET_URLS</code> section near the top<br>
+        <strong>7.</strong> Add your new URL like this:<br>
+        <div style="background:#f8f9fb;border:1px solid #e8eaed;border-radius:8px;padding:10px 14px;margin:8px 0;font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.8">
+          scrub: 'https://docs.google.com/...pub?gid=XXXXX&single=true&output=csv',
+        </div>
+        <strong>8.</strong> Save the file and re-upload it to GitHub — your site updates in ~1 min
+      </div>
+    </div>
+
+    <div class="sec-hdr" style="margin-top:4px"><div class="sec-title">If a VA name changes or is corrected in the sheet</div></div>
+    <div class="chart-card">
+      <div style="font-size:12.5px;line-height:2;color:#374151">
+        <strong>Nothing to do on the website.</strong> Fix the name in your Google Sheet, and the dashboard automatically picks it up on the next refresh.
+      </div>
+    </div>
+
+    <div class="sec-hdr" style="margin-top:4px"><div class="sec-title">If you want to add a new VA color</div></div>
+    <div class="chart-card">
+      <div style="font-size:12.5px;line-height:2;color:#374151">
+        Open <code>index.html</code> in a text editor → find the <code>VA_COLORS</code> section → add a line like:<br>
+        <div style="background:#f8f9fb;border:1px solid #e8eaed;border-radius:8px;padding:10px 14px;margin:8px 0;font-family:'DM Mono',monospace;font-size:11.5px">
+          'New VA Name': '#your-hex-color',
+        </div>
+        Save and re-upload to GitHub.
+      </div>
+    </div>
+
+    <div class="sec-hdr" style="margin-top:4px"><div class="sec-title">Current connected sheets</div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Sheet tab</th><th>Status</th><th>Used in</th></tr></thead><tbody>
+      <tr><td><strong>Weekly</strong></td><td><span class="tag" style="background:#d1fae5;color:#065f46"><span class="tag-dot" style="background:#10b981"></span>Connected</span></td><td>All views</td></tr>
+      <tr><td>PersonaScrubAvgTime</td><td><span class="tag" style="background:#fef3c7;color:#92400e"><span class="tag-dot" style="background:#f59e0b"></span>Not yet connected</span></td><td>Persona Scrub (enhanced)</td></tr>
+      <tr><td>SupportRequestAvgTime</td><td><span class="tag" style="background:#fef3c7;color:#92400e"><span class="tag-dot" style="background:#f59e0b"></span>Not yet connected</span></td><td>Support Request (enhanced)</td></tr>
+      <tr><td>WeeklyReport</td><td><span class="tag" style="background:#fef3c7;color:#92400e"><span class="tag-dot" style="background:#f59e0b"></span>Not yet connected</span></td><td>Attendance view</td></tr>
+      <tr><td>Free Time</td><td><span class="tag" style="background:#fef3c7;color:#92400e"><span class="tag-dot" style="background:#f59e0b"></span>Not yet connected</span></td><td>Attendance view</td></tr>
+    </tbody></table></div>
+  `;
+}
+
+loadData();
+</script>
+</body>
+</html>
