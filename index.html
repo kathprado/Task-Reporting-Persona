@@ -408,7 +408,7 @@ function csrStats(){
 
 function buildCSRNav(){
   const csrs=[...new Set(allData.map(r=>r['VA Name']))].filter(Boolean).sort();
-  document.getElementById('csrNav').innerHTML=vas.map(va=>
+  document.getElementById('csrNav').innerHTML=csrs.map(va=>
     `<div class="csr-item" onclick="filterCSR('${va}')">
       <div class="csr-dot" style="background:${csrC(va)}"></div>
       <span>${va}</span>
@@ -443,36 +443,32 @@ function render(){
 }
 
 /* ── Live status bar ── */
-function buildStatusBar(vas){
-  const statuses=['free','working','idle','on break','offline'];
-  const counts={free:0,working:0,idle:0,'on break':0,offline:0};
-  vas.forEach(v=>{ counts['working']++; }); // default all to working for now
+function buildStatusBar(csrs){
   return `<div class="status-bar">
     <div class="status-bar-hdr">
       <div class="status-bar-title">
-        <svg width="14" height="14" fill="none" stroke="#94a3b8" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="6" r="2"/><path d="M15 14c0-2-1.3-3.5-3-4"/></svg>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="6" r="2"/><path d="M15 14c0-2-1.3-3.5-3-4"/></svg>
         Live Team Status
       </div>
       <div class="status-legend">
-        <div class="sl-item"><div class="sl-dot" style="background:#22c55e"></div> free</div>
-        <div class="sl-item"><div class="sl-dot" style="background:#6366f1"></div> working</div>
-        <div class="sl-item"><div class="sl-dot" style="background:#f59e0b"></div> idle</div>
-        <div class="sl-item"><div class="sl-dot" style="background:#f97316"></div> on break</div>
-        <div class="sl-item"><div class="sl-dot" style="background:#475569"></div> offline</div>
+        <div class="sl-item"><div class="sl-dot" style="background:#22c55e"></div>active</div>
+        <div class="sl-item"><div class="sl-dot" style="background:#f59e0b"></div>idle</div>
+        <div class="sl-item"><div class="sl-dot" style="background:#64748b"></div>offline</div>
       </div>
     </div>
-    <div class="tier-row">
-      <div class="tier-col">
-        <div class="tier-col-label">T1</div>
-        ${vas.slice(0,2).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      ${csrs.map(csr=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(csr.name)}"></div>${csr.name}<span class="agent-task">· active</span></div>`).join('')}
+    </div>
+  </div>`;
+}
       </div>
       <div class="tier-col">
         <div class="tier-col-label">T2</div>
-        ${vas.slice(2,4).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
+        ${csrs.slice(2,4).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
       </div>
       <div class="tier-col">
         <div class="tier-col-label">T3</div>
-        ${vas.slice(4).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
+        ${csrs.slice(4).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
       </div>
     </div>
   </div>`;
@@ -481,16 +477,16 @@ function buildStatusBar(vas){
 /* ── Overview ── */
 function renderOverview(){
   const csrs=csrStats();
-  if(!vas.length){document.getElementById('content').innerHTML='<div class="loading"><span style="color:#475569">No data for this week</span></div>';return;}
-  const totalHrs=vas.reduce((s,v)=>s+v.totalHrs,0);
-  const totalFree=vas.reduce((s,v)=>s+v.freeHrs,0);
-  const totalScrub=vas.reduce((s,v)=>s+v.scrubHrs,0);
-  const avgFree=totalFree/vas.length;
-  const topFree=vas.slice().sort((a,b)=>b.freeHrs-a.freeHrs)[0];
+  if(!csrs.length){document.getElementById('content').innerHTML='<div class="loading"><span style="color:#475569">No data for this week</span></div>';return;}
+  const totalHrs=csrs.reduce((s,v)=>s+v.totalHrs,0);
+  const totalFree=csrs.reduce((s,v)=>s+v.freeHrs,0);
+  const totalScrub=csrs.reduce((s,v)=>s+v.scrubHrs,0);
+  const avgFree=totalFree/csrs.length;
+  const topFree=csrs.slice().sort((a,b)=>b.freeHrs-a.freeHrs)[0];
   const wk=document.getElementById('weekSel').value;
   const wkEnd=new Date(wk); wkEnd.setDate(wkEnd.getDate()+6);
 
-  let html = buildStatusBar(vas);
+  let html = buildStatusBar(csrs);
 
   // Summary banner
   html+=`<div class="summary-banner">
@@ -502,12 +498,12 @@ function renderOverview(){
       <div class="bm">
         <div class="bm-label"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>Total Hours</div>
         <div class="bm-val">${toHM(totalHrs)}</div>
-        <div class="bm-sub">${vas.length} VAs × ${[...new Set(getWeekData().map(r=>String(r['Shift Date']||'').slice(0,10)))].filter(Boolean).length} days</div>
+        <div class="bm-sub">${csrs.length} CSRs × ${[...new Set(getWeekData().map(r=>String(r['Shift Date']||'').slice(0,10)))].filter(Boolean).length} days</div>
       </div>
       <div class="bm">
         <div class="bm-label"><svg viewBox="0 0 16 16"><polyline points="1,11 5,7 9,9 15,3"/></svg>Avg Free Time/VA</div>
         <div class="bm-val">${toHM(avgFree)}</div>
-        <div class="bm-sub">${vas.filter(v=>v.freeHrs>0).length} VAs with free time</div>
+        <div class="bm-sub">${csrs.filter(v=>v.freeHrs>0).length} CSRs with free time</div>
       </div>
       <div class="bm">
         <div class="bm-label"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>Total Free Time</div>
@@ -521,8 +517,8 @@ function renderOverview(){
       </div>
     </div>
     </div>
-      <div class="bt"><div class="bt-label"><span>T2 — Concierge 2</span><span style="color:#475569">${vas.slice(2,4).length} agents</span></div><div class="bt-val">${toHM(vas.slice(2,4).reduce((s,v)=>s+v.totalHrs,0))} total</div><div class="bt-sub">${toHM(vas.slice(2,4).reduce((s,v)=>s+v.freeHrs,0)/Math.max(vas.slice(2,4).length,1))} avg free/VA</div></div>
-      <div class="bt"><div class="bt-label"><span>T3 — Concierge 3</span><span style="color:#475569">${vas.slice(4).length} agents</span></div><div class="bt-val">${toHM(vas.slice(4).reduce((s,v)=>s+v.totalHrs,0))} total</div><div class="bt-sub">${toHM(vas.slice(4).reduce((s,v)=>s+v.freeHrs,0)/Math.max(vas.slice(4).length,1))} avg free/VA</div></div>
+      <div class="bt-val">${toHM(csrs.slice(2,4).reduce((s,v)=>s+v.totalHrs,0))} total</div><div class="bt-sub">${toHM(csrs.slice(2,4).reduce((s,v)=>s+v.freeHrs,0)/Math.max(csrs.slice(2,4).length,1))} avg free/VA</div></div>
+      <div class="bt-val">${toHM(csrs.slice(4).reduce((s,v)=>s+v.totalHrs,0))} total</div><div class="bt-sub">${toHM(csrs.slice(4).reduce((s,v)=>s+v.freeHrs,0)/Math.max(csrs.slice(4).length,1))} avg free/VA</div></div>
     </div>
   </div>`;
 
@@ -531,7 +527,7 @@ function renderOverview(){
   html+=`<div class="tbl-card"><div class="tbl-wrap"><table class="tbl">
     <thead><tr><th>VA Name</th><th>Total hrs</th><th>Persona Scrub</th><th>Support Req</th><th>Free Time</th><th>Break</th><th>NPS Survey</th><th>Active Days</th></tr></thead>
     <tbody>`;
-  vas.forEach(v=>{
+  csrs.forEach(v=>{
     html+=`<tr>
       <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${csrC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
       <td style="color:#f1f5f9;font-weight:600">${toHM(v.totalHrs)}</td>
@@ -567,10 +563,10 @@ function renderOverview(){
 
   const c1=new Chart(document.getElementById('ov1'),{
     type:'bar',
-    data:{labels:vas.map(v=>v.name.split(' ')[0]),datasets:[
-      {label:'Scrub',data:vas.map(v=>+v.scrubHrs.toFixed(2)),backgroundColor:'#a78bfa',borderRadius:3},
-      {label:'Support',data:vas.map(v=>+v.supportHrs.toFixed(2)),backgroundColor:'#f59e0b',borderRadius:3},
-      {label:'Free time',data:vas.map(v=>+v.freeHrs.toFixed(2)),backgroundColor:'#22c55e',borderRadius:3},
+    data:{labels:csrs.map(v=>v.name.split(' ')[0]),datasets:[
+      {label:'Scrub',data:csrs.map(v=>+v.scrubHrs.toFixed(2)),backgroundColor:'#a78bfa',borderRadius:3},
+      {label:'Support',data:csrs.map(v=>+v.supportHrs.toFixed(2)),backgroundColor:'#f59e0b',borderRadius:3},
+      {label:'Free time',data:csrs.map(v=>+v.freeHrs.toFixed(2)),backgroundColor:'#22c55e',borderRadius:3},
     ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{stacked:true,ticks:{color:'#475569',font:{size:10}}},y:{stacked:true,ticks:{color:'#475569'},grid:{color:'#1e2333'}}}}
   });
@@ -593,7 +589,7 @@ function renderTracking(){
   const csrs=csrStats();
   const dates=[...new Set(getWeekData().map(r=>String(r['Shift Date']||'').slice(0,10)))].filter(Boolean).sort();
 
-  let html=buildStatusBar(vas);
+  let html=buildStatusBar(csrs);
   html+=`<div class="sec-hdr">
     <div class="sec-title">Daily Summary by VA</div>
     <div class="filter-row">
@@ -608,7 +604,7 @@ function renderTracking(){
     <thead><tr><th>Shift Date ↕</th><th>VA Name ↕</th><th>Scrub (hrs)</th><th>Support (hrs)</th><th>Free Time</th><th>Break</th><th>NPS Survey</th><th>Total</th></tr></thead>
     <tbody>`;
 
-  vas.forEach(v=>{
+  csrs.forEach(v=>{
     html+=`<tr class="va-row-hdr"><td colspan="8"><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${csrC(v.name)}"></span>${v.name}</span> <span style="color:#475569;font-size:10px;font-weight:400;margin-left:6px">(${v.days} days)</span></td></tr>`;
     dates.forEach(d=>{
       const dayData=getWeekData().filter(r=>r['VA Name']===v.name&&String(r['Shift Date']||'').slice(0,10)===d);
@@ -642,13 +638,13 @@ function setFilter(f,el){ activeFilter=f; document.querySelectorAll('.filter-btn
 /* ── Free Time ── */
 function renderFreeTime(){
   const csrs=csrStats().sort((a,b)=>b.freeHrs-a.freeHrs);
-  const totalFree=vas.reduce((s,v)=>s+v.freeHrs,0);
-  const avgFree=totalFree/Math.max(vas.length,1);
+  const totalFree=csrs.reduce((s,v)=>s+v.freeHrs,0);
+  const avgFree=totalFree/Math.max(csrs.length,1);
 
   let html=`<div class="metric-grid">
     <div class="mcard"><div class="mcard-lbl">Total Free Time</div><div class="mcard-val" style="color:#22c55e">${toHM(totalFree)}</div><div class="mcard-sub">Across all VAs</div></div>
     <div class="mcard"><div class="mcard-lbl">Average per VA</div><div class="mcard-val">${toHM(avgFree)}</div><div class="mcard-sub">Team average</div></div>
-    <div class="mcard"><div class="mcard-lbl">VAs with Free Time</div><div class="mcard-val">${vas.filter(v=>v.freeHrs>0).length}/${vas.length}</div><div class="mcard-sub">Available bandwidth</div></div>
+    <div class="mcard"><div class="mcard-lbl">CSRs with Free Time</div><div class="mcard-val">${csrs.filter(v=>v.freeHrs>0).length}/${csrs.length}</div><div class="mcard-sub">Available bandwidth</div></div>
     <div class="mcard"><div class="mcard-lbl">Status</div><div class="mcard-val" style="font-size:16px;color:${avgFree>2?'#22c55e':avgFree>1?'#f59e0b':'#f43f5e'}">${avgFree>2?'Good':avgFree>1?'Moderate':'Low'}</div><div class="mcard-sub">Team bandwidth</div></div>
   </div>`;
 
@@ -657,7 +653,7 @@ function renderFreeTime(){
       <div class="chart-title">Free Time by VA
         <div class="chart-legend"><div class="cl-item"><div class="cl-dot" style="background:#6366f1"></div>T1</div><div class="cl-item"><div class="cl-dot" style="background:#22d3ee"></div>T2</div><div class="cl-item"><div class="cl-dot" style="background:#f59e0b"></div>T3</div></div>
       </div>
-      <div style="position:relative;height:${Math.max(180,vas.length*38+60)}px"><canvas id="ft1"></canvas></div>
+      <div style="position:relative;height:${Math.max(180,csrs.length*38+60)}px"><canvas id="ft1"></canvas></div>
     </div>
     <div class="chart-card">
       <div class="chart-title">Free Time Log</div>
@@ -681,7 +677,7 @@ function renderFreeTime(){
   const tColors=['#6366f1','#6366f1','#22d3ee','#22d3ee','#f59e0b','#f59e0b'];
   const c=new Chart(document.getElementById('ft1'),{
     type:'bar',
-    data:{labels:vas.map(v=>v.name),datasets:[{label:'Free time',data:vas.map(v=>+v.freeHrs.toFixed(2)),backgroundColor:vas.map((v,i)=>tColors[i]||'#6366f1'),borderRadius:4}]},
+    data:{labels:csrs.map(v=>v.name),datasets:[{label:'Free time',data:csrs.map(v=>+v.freeHrs.toFixed(2)),backgroundColor:csrs.map((v,i)=>tColors[i]||'#6366f1'),borderRadius:4}]},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#475569'},grid:{color:'#1e2333'}},y:{ticks:{color:'#94a3b8',font:{size:11}}}}}
   });
   charts.push(c);
@@ -691,13 +687,13 @@ function renderFreeTime(){
 function renderScrub(){
   const csrs=csrStats().sort((a,b)=>b.scrubHrs-a.scrubHrs);
   const dates=[...new Set(getWeekData().map(r=>String(r['Shift Date']||'').slice(0,10)))].filter(Boolean).sort();
-  const totalScrub=vas.reduce((s,v)=>s+v.scrubHrs,0);
+  const totalScrub=csrs.reduce((s,v)=>s+v.scrubHrs,0);
 
   let html=`<div class="metric-grid">
     <div class="mcard"><div class="mcard-lbl">Total Persona Scrub</div><div class="mcard-val" style="color:#a78bfa">${toHM(totalScrub)}</div><div class="mcard-sub">This week</div></div>
-    <div class="mcard"><div class="mcard-lbl">Avg per VA</div><div class="mcard-val">${toHM(totalScrub/Math.max(vas.length,1))}</div></div>
+    <div class="mcard"><div class="mcard-lbl">Avg per CSR</div><div class="mcard-val">${toHM(totalScrub/Math.max(csrs.length,1))}</div></div>
     <div class="mcard"><div class="mcard-lbl">Avg per day</div><div class="mcard-val">${toHM(totalScrub/Math.max(dates.length,1))}</div></div>
-    <div class="mcard"><div class="mcard-lbl">Active VAs</div><div class="mcard-val">${vas.filter(v=>v.scrubHrs>0).length}</div></div>
+    <div class="mcard"><div class="mcard-lbl">Active CSRs</div><div class="mcard-val">${csrs.filter(v=>v.scrubHrs>0).length}</div></div>
   </div>
   <div class="chart-card" style="margin-bottom:16px">
     <div class="chart-title">Persona Scrub — daily trend per VA</div>
@@ -707,7 +703,7 @@ function renderScrub(){
     <thead><tr><th>VA Name</th><th>Total scrub</th><th>Avg per day</th><th>Active days</th><th>Share of total</th></tr></thead>
     <tbody>`;
 
-  vas.forEach(v=>{
+  csrs.forEach(v=>{
     const pct=totalScrub>0?(v.scrubHrs/totalScrub*100):0;
     html+=`<tr>
       <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${csrC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
@@ -733,7 +729,7 @@ function renderScrub(){
   });
   const c=new Chart(document.getElementById('sc1'),{
     type:'line',
-    data:{labels:dates.map(d=>fmtD(d)),datasets:vas.filter(v=>v.scrubHrs>0).map(v=>({
+    data:{labels:dates.map(d=>fmtD(d)),datasets:csrs.filter(v=>v.scrubHrs>0).map(v=>({
       label:v.name,
       data:dates.map(d=>+((byVADate[v.name]&&byVADate[v.name][d])||0).toFixed(3)),
       borderColor:csrC(v.name),backgroundColor:'transparent',pointRadius:4,tension:.35,borderWidth:2,pointHoverRadius:6
@@ -746,12 +742,12 @@ function renderScrub(){
 /* ── Support Request ── */
 function renderSupport(){
   const csrs=csrStats().sort((a,b)=>b.supportHrs-a.supportHrs);
-  const totalSup=vas.reduce((s,v)=>s+v.supportHrs,0);
+  const totalSup=csrs.reduce((s,v)=>s+v.supportHrs,0);
   let html=`<div class="metric-grid">
     <div class="mcard"><div class="mcard-lbl">Total Support Time</div><div class="mcard-val" style="color:#f59e0b">${toHM(totalSup)}</div></div>
-    <div class="mcard"><div class="mcard-lbl">Avg per VA</div><div class="mcard-val">${toHM(totalSup/Math.max(vas.length,1))}</div></div>
-    <div class="mcard"><div class="mcard-lbl">Top VA</div><div class="mcard-val" style="font-size:16px;color:${csrC(vas[0]?.name)}">${vas[0]?.name.split(' ')[0]||'—'}</div></div>
-    <div class="mcard"><div class="mcard-lbl">VAs with Support</div><div class="mcard-val">${vas.filter(v=>v.supportHrs>0).length}</div></div>
+    <div class="mcard"><div class="mcard-lbl">Avg per CSR</div><div class="mcard-val">${toHM(totalSup/Math.max(csrs.length,1))}</div></div>
+    <div class="mcard"><div class="mcard-lbl">Top CSR</div><div class="mcard-val" style="font-size:16px;color:${csrC(csrs[0]?.name)}">${csrs[0]?.name.split(' ')[0]||'—'}</div></div>
+    <div class="mcard"><div class="mcard-lbl">CSRs with Support</div><div class="mcard-val">${csrs.filter(v=>v.supportHrs>0).length}</div></div>
   </div>
   <div class="chart-card" style="margin-bottom:16px">
     <div class="chart-title">Support Request hours by VA</div>
@@ -759,7 +755,7 @@ function renderSupport(){
   </div>
   <div class="tbl-card"><div class="tbl-wrap"><table class="tbl">
     <thead><tr><th>VA Name</th><th>Total support</th><th>Avg/day</th><th>Days active</th></tr></thead><tbody>`;
-  vas.forEach(v=>{
+  csrs.forEach(v=>{
     html+=`<tr>
       <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${csrC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
       <td style="color:#f59e0b;font-weight:500">${toHM(v.supportHrs)}</td>
@@ -771,7 +767,7 @@ function renderSupport(){
   document.getElementById('content').innerHTML=html;
   const c=new Chart(document.getElementById('sp1'),{
     type:'bar',
-    data:{labels:vas.map(v=>v.name),datasets:[{label:'Support hrs',data:vas.map(v=>+v.supportHrs.toFixed(3)),backgroundColor:vas.map(v=>csrC(v.name)),borderRadius:5}]},
+    data:{labels:csrs.map(v=>v.name),datasets:[{label:'Support hrs',data:csrs.map(v=>+v.supportHrs.toFixed(3)),backgroundColor:csrs.map(v=>csrC(v.name)),borderRadius:5}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#475569'}},y:{ticks:{color:'#475569'},grid:{color:'#1e2333'}}}}
   });
   charts.push(c);
@@ -795,7 +791,7 @@ function renderTasks(){
   });
   html+=`<div class="chart-grid" style="margin-top:18px">
     <div class="chart-card"><div class="chart-title">Task distribution</div><div style="position:relative;height:220px"><canvas id="tk1"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Per-VA stacked breakdown</div><div style="position:relative;height:${Math.max(220,vaStats().length*50+80)}px"><canvas id="tk2"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Per-CSR breakdown</div><div style="position:relative;height:${Math.max(220,csrStats().length*50+80)}px"><canvas id="tk2"></canvas></div></div>
   </div>`;
   document.getElementById('content').innerHTML=html;
   const top=sorted.slice(0,8);
@@ -809,7 +805,7 @@ function renderTasks(){
   const keys=['Persona Scrub','Support Request','NPS Survey','Break','Free Time','Checking Emails','Follow up','Meeting'];
   const c2=new Chart(document.getElementById('tk2'),{
     type:'bar',
-    data:{labels:vas.map(v=>v.name),datasets:keys.map(tk=>({label:tk,data:vas.map(v=>+((v.byTask[tk]||0)/60).toFixed(2)),backgroundColor:taskC(tk),borderRadius:2}))},
+    data:{labels:csrs.map(v=>v.name),datasets:keys.map(tk=>({label:tk,data:csrs.map(v=>+((v.byTask[tk]||0)/60).toFixed(2)),backgroundColor:taskC(tk),borderRadius:2}))},
     options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{labels:{color:'#64748b',font:{size:10},boxWidth:9}}},scales:{x:{stacked:true,ticks:{color:'#475569'},grid:{color:'#1e2333'}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:11}}}}}
   });
   charts.push(c2);
