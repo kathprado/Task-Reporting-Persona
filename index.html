@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Task Reporting — Persona</title>
+<title>Time Analyzer — Persona</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
@@ -13,30 +13,49 @@
    File → Share → Publish to web → pick tab → CSV → copy URL
    ============================================================ */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; background: #0f1117; color: #e2e8f0; font-size: 13px; }
+html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; font-size: 13px; transition: background .25s, color .25s; }
+
+/* THEME VARIABLES */
+[data-theme="dark"] {
+  --bg-page: #0f1117; --bg-surface: #13151e; --bg-raised: #1e2333;
+  --border: #1e2333; --border-2: #2d3548;
+  --text-pri: #f1f5f9; --text-sec: #94a3b8; --text-muted: #475569;
+  --accent-bg: #1e2740; --accent-txt: #a5b4fc;
+  --tbl-hdr: #0f1117; --tbl-row: #1e233340; --grid-line: #1e2333;
+  --sel-bg: #1e2333; --sel-txt: #cbd5e1; --chip-bg: #1e2333;
+}
+[data-theme="light"] {
+  --bg-page: #f5f6fa; --bg-surface: #ffffff; --bg-raised: #f1f3f8;
+  --border: #e4e7ef; --border-2: #d1d5e0;
+  --text-pri: #1a1d2e; --text-sec: #4b5563; --text-muted: #9ca3af;
+  --accent-bg: #eff0ff; --accent-txt: #4f46e5;
+  --tbl-hdr: #f5f6fa; --tbl-row: #f9fafb; --grid-line: #e4e7ef;
+  --sel-bg: #f1f3f8; --sel-txt: #1a1d2e; --chip-bg: #eff0ff;
+}
+body { background: var(--bg-page); color: var(--text-pri); }
 
 /* ── Sidebar ── */
-.sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: #13151e; border-right: 1px solid #1e2333; display: flex; flex-direction: column; overflow-y: auto; z-index: 100; }
-.logo { padding: 18px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1e2333; }
+.sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: var(--bg-surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; z-index: 100; }
+.logo { padding: 18px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
 .logo-icon { width: 28px; height: 28px; border-radius: 8px; background: #6366f1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .logo-icon svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 2; }
-.logo-text { font-size: 14px; font-weight: 700; color: #f1f5f9; letter-spacing: -.02em; }
-.logo-sub { font-size: 10px; color: #475569; margin-top: 1px; }
+.logo-text { font-size: 14px; font-weight: 700; color: var(--text-pri); letter-spacing: -.02em; }
+.logo-sub { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
 .search-wrap { padding: 12px; border-bottom: 1px solid #1e2333; }
-.search-box { width: 100%; background: #1e2333; border: 1px solid #2d3548; border-radius: 8px; padding: 7px 10px; font-size: 12px; color: #94a3b8; outline: none; font-family: inherit; }
+.search-box { width: 100%; background: var(--bg-raised); border: 1px solid var(--border-2); border-radius: 8px; padding: 7px 10px; font-size: 12px; color: var(--text-sec); outline: none; font-family: inherit; }
 .search-box::placeholder { color: #475569; }
 .nav-section { padding: 16px 0 4px; }
 .nav-label { padding: 0 16px 6px; font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #475569; }
-.nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 16px; font-size: 12.5px; color: #64748b; cursor: pointer; border-left: 2px solid transparent; transition: all .15s; }
-.nav-item:hover { color: #cbd5e1; background: #1e2333; }
-.nav-item.active { color: #a5b4fc; background: #1e2740; border-left-color: #6366f1; font-weight: 500; }
+.nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 16px; font-size: 12.5px; color: var(--text-sec); cursor: pointer; border-left: 2px solid transparent; transition: all .15s; }
+.nav-item:hover { color: var(--text-pri); background: #1e2333; }
+.nav-item.active { color: var(--accent-txt); background: var(--accent-bg); border-left-color: #6366f1; font-weight: 500; }
 .nav-item svg { width: 14px; height: 14px; flex-shrink: 0; }
 .tier-group { padding: 4px 0; }
 .tier-label { padding: 8px 16px 4px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #475569; display: flex; align-items: center; gap-6px; }
 .tier-badge { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 4px; font-size: 9px; font-weight: 700; margin-right: 6px; }
-.va-item { padding: 6px 16px 6px 28px; font-size: 12px; color: #64748b; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 7px; }
-.va-item:hover { color: #cbd5e1; background: #1e2333; }
-.va-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.csr-item { padding: 6px 16px 6px 28px; font-size: 12px; color: #64748b; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 7px; }
+.csr-item:hover { color: #cbd5e1; background: #1e2333; }
+.csr-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .sidebar-bottom { margin-top: auto; padding: 12px; border-top: 1px solid #1e2333; }
 .week-sel-wrap { display: flex; flex-direction: column; gap: 5px; }
 .week-sel-label { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #475569; }
@@ -57,7 +76,7 @@ select.week-sel { width: 100%; background: #1e2333; border: 1px solid #2d3548; b
 .content { padding: 20px 24px; flex: 1; }
 
 /* ── Live status bar ── */
-.status-bar { background: #13151e; border: 1px solid #1e2333; border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; }
+.status-bar { background: #13151e; border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 18px; }
 .status-bar-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .status-bar-title { font-size: 13px; font-weight: 600; color: #cbd5e1; display: flex; align-items: center; gap: 7px; }
 .status-legend { display: flex; gap: 14px; font-size: 11px; }
@@ -103,7 +122,7 @@ select.week-sel { width: 100%; background: #1e2333; border: 1px solid #2d3548; b
 .tbl-card { background: #13151e; border: 1px solid #1e2333; border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
 .tbl-wrap { overflow-x: auto; }
 table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-.tbl th { padding: 10px 14px; background: #0f1117; border-bottom: 1px solid #1e2333; font-size: 11px; font-weight: 600; color: #475569; text-align: left; white-space: nowrap; letter-spacing: .03em; cursor: pointer; user-select: none; }
+.tbl th { padding: 10px 14px; background: var(--bg-page); border-bottom: 1px solid #1e2333; font-size: 11px; font-weight: 600; color: #475569; text-align: left; white-space: nowrap; letter-spacing: .03em; cursor: pointer; user-select: none; }
 .tbl th:hover { color: #94a3b8; }
 .tbl td { padding: 9px 14px; border-bottom: 1px solid #1a1f2e; color: #94a3b8; white-space: nowrap; }
 .tbl tr:last-child td { border-bottom: none; }
@@ -179,10 +198,16 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
     </div>
   </div>
   <div class="nav-section">
-    <div class="nav-label">VAs</div>
-    <div id="vaNav"></div>
+    <div class="nav-label">CSRs</div>
+    <div id="csrNav"></div>
   </div>
   <div class="sidebar-bottom">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:11px;color:var(--text-muted);font-weight:500">Dark mode</span>
+      <div id="themeToggle" onclick="toggleTheme()" style="position:relative;width:36px;height:20px;border-radius:10px;cursor:pointer;background:#6366f1;transition:background .25s;flex-shrink:0">
+        <div id="toggleThumb" style="position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .25s;transform:translateX(16px)"></div>
+      </div>
+    </div>
     <div class="week-sel-wrap">
       <div class="week-sel-label">Week</div>
       <select class="week-sel" id="weekSel" onchange="onWeekChange()"></select>
@@ -221,7 +246,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR0qDu1viah_9pJDZZeuL0ziS_K7x07DHQuO-q36rvFQVaVZLyC3HZbrNqHnhQmuFF8CFtFZX5DZDVY/pub?output=csv';
 // ============================================================
 
-const VA_COLORS = {
+const CSR_COLORS = {
   'Monica':'#6366f1','Nolan Walker':'#22c55e','Amelia':'#a78bfa',
   'Danni':'#f59e0b','Hannah Carter':'#f43f5e','Allie Parker':'#06b6d4',
   'Jane Alderson':'#ec4899','Kath Prado':'#8b5cf6'
@@ -236,7 +261,7 @@ const TASK_COLORS = {
 
 let allData=[], weeks=[], currentNav='overview', charts=[], activeFilter='all';
 
-const vaC = n => VA_COLORS[n] || '#6366f1';
+const csrC = n => CSR_COLORS[n] || '#6366f1';
 const taskC = t => TASK_COLORS[t] || '#475569';
 
 function parseCSV(text){
@@ -252,9 +277,23 @@ function parseCSV(text){
   }).filter(r=>Object.values(r).some(v=>v));
 }
 
+function parseSheetDate(d){
+  if(!d) return null;
+  const s = String(d).trim();
+  if(/^\d{4,5}$/.test(s)){
+    const serial = parseInt(s);
+    if(serial < 50000 && serial > 1000){
+      const excelEpoch = new Date(1899, 11, 30);
+      return new Date(excelEpoch.getTime() + serial * 86400000);
+    }
+  }
+  const dt = new Date(d);
+  return isNaN(dt) ? null : dt;
+}
 function getWeekKey(d){
-  if(!d)return null;
-  const dt=new Date(d); if(isNaN(dt))return null;
+  if(!d) return null;
+  const dt = parseSheetDate(d);
+  if(!dt) return null;
   const day=dt.getDay(), diff=dt.getDate()-day+(day===0?-6:1), m=new Date(dt);
   m.setDate(diff); return m.toISOString().slice(0,10);
 }
@@ -265,6 +304,33 @@ function fmtWeek(k){
 function fmtDate(d){ const dt=new Date(d); return isNaN(dt)?d:dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 function fmtD(d){ const dt=new Date(d); return isNaN(dt)?d:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
 function toHM(hrs){ const h=Math.floor(hrs), m=Math.round((hrs-h)*60); return m>0?`${h}h ${m}m`:`${h}h`; }
+
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  const next=isDark?'light':'dark';
+  html.setAttribute('data-theme',next);
+  localStorage.setItem('theme',next);
+  document.getElementById('themeToggle').style.background=next==='dark'?'#6366f1':'#d1d5e0';
+  document.getElementById('toggleThumb').style.transform=next==='dark'?'translateX(16px)':'translateX(0)';
+  clearCharts();render();
+}
+// restore saved theme on load
+(function(){
+  const t=localStorage.getItem('theme')||'dark';
+  document.documentElement.setAttribute('data-theme',t);
+  if(t==='light'){
+    const tog=document.getElementById('themeToggle');
+    const tmb=document.getElementById('toggleThumb');
+    if(tog)tog.style.background='#d1d5e0';
+    if(tmb)tmb.style.transform='translateX(0)';
+  }
+})();
+function isDark(){return document.documentElement.getAttribute('data-theme')==='dark';}
+function chartColors(){
+  const dark=isDark();
+  return {tick:dark?'#475569':'#9ca3af',grid:dark?'#1e2333':'#e4e7ef',legend:dark?'#64748b':'#6b7280'};
+}
 
 async function loadData(force=false){
   document.getElementById('statusText').textContent='Fetching…';
@@ -284,7 +350,7 @@ async function loadData(force=false){
     sel.innerHTML='';
     weeks.forEach(w=>{ const o=document.createElement('option'); o.value=w; o.textContent=fmtWeek(w); sel.appendChild(o); });
     if(prev&&weeks.includes(prev)) sel.value=prev; else sel.value=weeks[weeks.length-1]||'';
-    buildVANav();
+    buildCSRNav();
     const now=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
     document.getElementById('statusText').textContent='Updated '+now;
     updateDateRange();
@@ -319,7 +385,7 @@ function getWeekData(){
   });
 }
 
-function vaStats(){
+function csrStats(){
   const data=getWeekData(), m={};
   data.forEach(r=>{
     const va=r['VA Name'], task=r['Task Type']; if(!va||!task)return;
@@ -340,16 +406,16 @@ function vaStats(){
   })).sort((a,b)=>b.totalHrs-a.totalHrs);
 }
 
-function buildVANav(){
-  const vas=[...new Set(allData.map(r=>r['VA Name']))].filter(Boolean).sort();
-  document.getElementById('vaNav').innerHTML=vas.map(va=>
-    `<div class="va-item" onclick="filterVA('${va}')">
-      <div class="va-dot" style="background:${vaC(va)}"></div>
+function buildCSRNav(){
+  const csrs=[...new Set(allData.map(r=>r['VA Name']))].filter(Boolean).sort();
+  document.getElementById('csrNav').innerHTML=vas.map(va=>
+    `<div class="csr-item" onclick="filterCSR('${va}')">
+      <div class="csr-dot" style="background:${csrC(va)}"></div>
       <span>${va}</span>
     </div>`).join('');
 }
 
-function filterVA(va){ sendPromptIfAvailable('Show me only '+va+"'s data this week"); }
+function filterCSR(va){ sendPromptIfAvailable('Show me only '+va+"'s data this week"); }
 function sendPromptIfAvailable(t){ try{sendPrompt(t);}catch(e){} }
 function filterSearch(q){ /* could highlight matching rows */ }
 
@@ -398,15 +464,15 @@ function buildStatusBar(vas){
     <div class="tier-row">
       <div class="tier-col">
         <div class="tier-col-label">T1</div>
-        ${vas.slice(0,2).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${vaC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
+        ${vas.slice(0,2).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
       </div>
       <div class="tier-col">
         <div class="tier-col-label">T2</div>
-        ${vas.slice(2,4).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${vaC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
+        ${vas.slice(2,4).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
       </div>
       <div class="tier-col">
         <div class="tier-col-label">T3</div>
-        ${vas.slice(4).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${vaC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
+        ${vas.slice(4).map(v=>`<div class="agent-chip"><div class="agent-chip-dot" style="background:${csrC(v.name)}"></div>${v.name}<span class="agent-task">· active</span></div>`).join('')}
       </div>
     </div>
   </div>`;
@@ -414,7 +480,7 @@ function buildStatusBar(vas){
 
 /* ── Overview ── */
 function renderOverview(){
-  const vas=vaStats();
+  const csrs=csrStats();
   if(!vas.length){document.getElementById('content').innerHTML='<div class="loading"><span style="color:#475569">No data for this week</span></div>';return;}
   const totalHrs=vas.reduce((s,v)=>s+v.totalHrs,0);
   const totalFree=vas.reduce((s,v)=>s+v.freeHrs,0);
@@ -454,8 +520,7 @@ function renderOverview(){
         <div class="bm-sub">${toHM(topFree?.freeHrs||0)}</div>
       </div>
     </div>
-    <div class="banner-tiers">
-      <div class="bt"><div class="bt-label"><span>T1 — Concierge 1</span><span style="color:#475569">${vas.slice(0,2).length} agents</span></div><div class="bt-val">${toHM(vas.slice(0,2).reduce((s,v)=>s+v.totalHrs,0))} total</div><div class="bt-sub">${toHM(vas.slice(0,2).reduce((s,v)=>s+v.freeHrs,0)/Math.max(vas.slice(0,2).length,1))} avg free/VA</div></div>
+    </div>
       <div class="bt"><div class="bt-label"><span>T2 — Concierge 2</span><span style="color:#475569">${vas.slice(2,4).length} agents</span></div><div class="bt-val">${toHM(vas.slice(2,4).reduce((s,v)=>s+v.totalHrs,0))} total</div><div class="bt-sub">${toHM(vas.slice(2,4).reduce((s,v)=>s+v.freeHrs,0)/Math.max(vas.slice(2,4).length,1))} avg free/VA</div></div>
       <div class="bt"><div class="bt-label"><span>T3 — Concierge 3</span><span style="color:#475569">${vas.slice(4).length} agents</span></div><div class="bt-val">${toHM(vas.slice(4).reduce((s,v)=>s+v.totalHrs,0))} total</div><div class="bt-sub">${toHM(vas.slice(4).reduce((s,v)=>s+v.freeHrs,0)/Math.max(vas.slice(4).length,1))} avg free/VA</div></div>
     </div>
@@ -468,7 +533,7 @@ function renderOverview(){
     <tbody>`;
   vas.forEach(v=>{
     html+=`<tr>
-      <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${vaC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
+      <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${csrC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
       <td style="color:#f1f5f9;font-weight:600">${toHM(v.totalHrs)}</td>
       <td style="color:#a78bfa">${toHM(v.scrubHrs)}</td>
       <td style="color:#f59e0b">${toHM(v.supportHrs)}</td>
@@ -525,7 +590,7 @@ function renderOverview(){
 
 /* ── Time Tracking ── */
 function renderTracking(){
-  const vas=vaStats();
+  const csrs=csrStats();
   const dates=[...new Set(getWeekData().map(r=>String(r['Shift Date']||'').slice(0,10)))].filter(Boolean).sort();
 
   let html=buildStatusBar(vas);
@@ -544,7 +609,7 @@ function renderTracking(){
     <tbody>`;
 
   vas.forEach(v=>{
-    html+=`<tr class="va-row-hdr"><td colspan="8"><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${vaC(v.name)}"></span>${v.name}</span> <span style="color:#475569;font-size:10px;font-weight:400;margin-left:6px">(${v.days} days)</span></td></tr>`;
+    html+=`<tr class="va-row-hdr"><td colspan="8"><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${csrC(v.name)}"></span>${v.name}</span> <span style="color:#475569;font-size:10px;font-weight:400;margin-left:6px">(${v.days} days)</span></td></tr>`;
     dates.forEach(d=>{
       const dayData=getWeekData().filter(r=>r['VA Name']===v.name&&String(r['Shift Date']||'').slice(0,10)===d);
       if(!dayData.length)return;
@@ -558,7 +623,7 @@ function renderTracking(){
       const total=Object.values(byTask).reduce((s,m)=>s+m,0)/60;
       html+=`<tr>
         <td style="color:#64748b">${fmtD(d)}</td>
-        <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:${vaC(v.name)}"></span>${v.name}</span></td>
+        <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:${csrC(v.name)}"></span>${v.name}</span></td>
         <td style="color:#a78bfa">${scrub>0?toHM(scrub):'—'}</td>
         <td style="color:#f59e0b">${support>0?toHM(support):'—'}</td>
         <td style="color:#22c55e">${free>0?toHM(free):'—'}</td>
@@ -576,7 +641,7 @@ function setFilter(f,el){ activeFilter=f; document.querySelectorAll('.filter-btn
 
 /* ── Free Time ── */
 function renderFreeTime(){
-  const vas=vaStats().sort((a,b)=>b.freeHrs-a.freeHrs);
+  const csrs=csrStats().sort((a,b)=>b.freeHrs-a.freeHrs);
   const totalFree=vas.reduce((s,v)=>s+v.freeHrs,0);
   const avgFree=totalFree/Math.max(vas.length,1);
 
@@ -608,7 +673,7 @@ function renderFreeTime(){
   });
   allDayFree.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   allDayFree.forEach(row=>{
-    html+=`<tr><td style="color:#64748b">${fmtD(row.date)}</td><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:${vaC(row.va)}"></span>${row.va}</span></td><td style="color:#22c55e">${toHM(row.mins/60)}</td></tr>`;
+    html+=`<tr><td style="color:#64748b">${fmtD(row.date)}</td><td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:${csrC(row.va)}"></span>${row.va}</span></td><td style="color:#22c55e">${toHM(row.mins/60)}</td></tr>`;
   });
   html+=`</tbody></table></div></div></div>`;
   document.getElementById('content').innerHTML=html;
@@ -624,7 +689,7 @@ function renderFreeTime(){
 
 /* ── Persona Scrub ── */
 function renderScrub(){
-  const vas=vaStats().sort((a,b)=>b.scrubHrs-a.scrubHrs);
+  const csrs=csrStats().sort((a,b)=>b.scrubHrs-a.scrubHrs);
   const dates=[...new Set(getWeekData().map(r=>String(r['Shift Date']||'').slice(0,10)))].filter(Boolean).sort();
   const totalScrub=vas.reduce((s,v)=>s+v.scrubHrs,0);
 
@@ -645,7 +710,7 @@ function renderScrub(){
   vas.forEach(v=>{
     const pct=totalScrub>0?(v.scrubHrs/totalScrub*100):0;
     html+=`<tr>
-      <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${vaC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
+      <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${csrC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
       <td style="color:#a78bfa;font-weight:500">${toHM(v.scrubHrs)}</td>
       <td>${toHM(v.scrubHrs/Math.max(v.days,1))}</td>
       <td>${v.days}d</td>
@@ -671,7 +736,7 @@ function renderScrub(){
     data:{labels:dates.map(d=>fmtD(d)),datasets:vas.filter(v=>v.scrubHrs>0).map(v=>({
       label:v.name,
       data:dates.map(d=>+((byVADate[v.name]&&byVADate[v.name][d])||0).toFixed(3)),
-      borderColor:vaC(v.name),backgroundColor:'transparent',pointRadius:4,tension:.35,borderWidth:2,pointHoverRadius:6
+      borderColor:csrC(v.name),backgroundColor:'transparent',pointRadius:4,tension:.35,borderWidth:2,pointHoverRadius:6
     }))},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#64748b',font:{size:10},boxWidth:10}}},scales:{x:{ticks:{color:'#475569',autoSkip:false,font:{size:10}},grid:{color:'#1e2333'}},y:{ticks:{color:'#475569'},grid:{color:'#1e2333'},title:{display:true,text:'Hours',color:'#475569'}}}}
   });
@@ -680,12 +745,12 @@ function renderScrub(){
 
 /* ── Support Request ── */
 function renderSupport(){
-  const vas=vaStats().sort((a,b)=>b.supportHrs-a.supportHrs);
+  const csrs=csrStats().sort((a,b)=>b.supportHrs-a.supportHrs);
   const totalSup=vas.reduce((s,v)=>s+v.supportHrs,0);
   let html=`<div class="metric-grid">
     <div class="mcard"><div class="mcard-lbl">Total Support Time</div><div class="mcard-val" style="color:#f59e0b">${toHM(totalSup)}</div></div>
     <div class="mcard"><div class="mcard-lbl">Avg per VA</div><div class="mcard-val">${toHM(totalSup/Math.max(vas.length,1))}</div></div>
-    <div class="mcard"><div class="mcard-lbl">Top VA</div><div class="mcard-val" style="font-size:16px;color:${vaC(vas[0]?.name)}">${vas[0]?.name.split(' ')[0]||'—'}</div></div>
+    <div class="mcard"><div class="mcard-lbl">Top VA</div><div class="mcard-val" style="font-size:16px;color:${csrC(vas[0]?.name)}">${vas[0]?.name.split(' ')[0]||'—'}</div></div>
     <div class="mcard"><div class="mcard-lbl">VAs with Support</div><div class="mcard-val">${vas.filter(v=>v.supportHrs>0).length}</div></div>
   </div>
   <div class="chart-card" style="margin-bottom:16px">
@@ -696,7 +761,7 @@ function renderSupport(){
     <thead><tr><th>VA Name</th><th>Total support</th><th>Avg/day</th><th>Days active</th></tr></thead><tbody>`;
   vas.forEach(v=>{
     html+=`<tr>
-      <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${vaC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
+      <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${csrC(v.name)}"></span><strong style="color:#cbd5e1">${v.name}</strong></span></td>
       <td style="color:#f59e0b;font-weight:500">${toHM(v.supportHrs)}</td>
       <td>${toHM(v.supportHrs/Math.max(v.days,1))}</td>
       <td>${v.days}d</td>
@@ -706,7 +771,7 @@ function renderSupport(){
   document.getElementById('content').innerHTML=html;
   const c=new Chart(document.getElementById('sp1'),{
     type:'bar',
-    data:{labels:vas.map(v=>v.name),datasets:[{label:'Support hrs',data:vas.map(v=>+v.supportHrs.toFixed(3)),backgroundColor:vas.map(v=>vaC(v.name)),borderRadius:5}]},
+    data:{labels:vas.map(v=>v.name),datasets:[{label:'Support hrs',data:vas.map(v=>+v.supportHrs.toFixed(3)),backgroundColor:vas.map(v=>csrC(v.name)),borderRadius:5}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#475569'}},y:{ticks:{color:'#475569'},grid:{color:'#1e2333'}}}}
   });
   charts.push(c);
@@ -740,7 +805,7 @@ function renderTasks(){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#64748b',font:{size:10},boxWidth:10}}}}
   });
   charts.push(c1);
-  const vas=vaStats();
+  const csrs=csrStats();
   const keys=['Persona Scrub','Support Request','NPS Survey','Break','Free Time','Checking Emails','Follow up','Meeting'];
   const c2=new Chart(document.getElementById('tk2'),{
     type:'bar',
